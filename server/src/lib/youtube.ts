@@ -5,6 +5,7 @@ import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { streamQueue, searchQueue } from './queue.js';
 
 export interface AudioStream {
   url: string;
@@ -257,8 +258,8 @@ async function tryIframeAudio(videoId: string): Promise<AudioStream> {
   };
 }
 
-// Main resolver - Find best method once, then stick to it
-export async function getAudioStream(videoId: string): Promise<AudioStream> {
+// Internal resolver - Find best method once, then stick to it
+async function resolveAudioStream(videoId: string): Promise<AudioStream> {
   // If iframe was successful before, stick to it for this session
   if (successfulMethod === 'iframe') {
     console.log(`🎯 Using iframe (session locked)`);
@@ -329,6 +330,14 @@ export async function getAudioStream(videoId: string): Promise<AudioStream> {
   throw new Error(`All methods failed. Last: ${lastError?.message || 'Unknown'}`);
 }
 
+/**
+ * Main stream resolver with queue management
+ * Queued to prevent server overload (max 10 concurrent)
+ */
+export async function getAudioStream(videoId: string): Promise<AudioStream> {
+  return streamQueue.add(() => resolveAudioStream(videoId));
+}
+
 // Get metadata with timeout
 export async function getMetadata(videoId: string): Promise<TrackMetadata> {
   try {
@@ -372,8 +381,8 @@ export async function getMetadata(videoId: string): Promise<TrackMetadata> {
   }
 }
 
-// Search using Innertube
-export async function search(query: string, limit: number = 10): Promise<SearchResult[]> {
+// Internal search function
+async function performSearch(query: string, limit: number = 10): Promise<SearchResult[]> {
   try {
     const yt = await getInnertubeInstance();
     
@@ -402,6 +411,14 @@ export async function search(query: string, limit: number = 10): Promise<SearchR
     // Return empty array instead of throwing to prevent 500 errors
     return [];
   }
+}
+
+/**
+ * Search with queue management
+ * Queued to prevent server overload (max 5 concurrent searches)
+ */
+export async function search(query: string, limit: number = 10): Promise<SearchResult[]> {
+  return searchQueue.add(() => performSearch(query, limit));
 }
 
 // Utility function to reset session cache (useful for debugging or session restart)

@@ -1,9 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { config } from 'dotenv';
 import searchRoutes from './routes/search.js';
 import trackRoutes from './routes/track.js';
 import guestRoutes from './routes/guest.js';
+import { getQueueStats } from './lib/queue.js';
 
 // Load environment variables
 config();
@@ -31,12 +33,35 @@ await fastify.register(cors, {
   credentials: true,
 });
 
+// Register rate limiting (prevent abuse)
+await fastify.register(rateLimit, {
+  max: 100, // Max 100 requests
+  timeWindow: '1 minute', // Per minute
+  errorResponseBuilder: (req, context) => {
+    return {
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit exceeded. Try again in ${Math.ceil(context.ttl / 1000)} seconds`,
+    };
+  },
+});
+
 // Health check
 fastify.get('/health', async (request, reply) => {
   return { 
     status: 'ok', 
     timestamp: new Date().toISOString(),
     service: 'musicmu-server'
+  };
+});
+
+// Queue stats endpoint (for monitoring)
+fastify.get('/api/stats', async (request, reply) => {
+  const stats = getQueueStats();
+  return {
+    queues: stats,
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
   };
 });
 
