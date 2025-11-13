@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search as SearchIcon, Play, Pause, Plus } from 'lucide-react';
+import { Search as SearchIcon, Play, Pause, Plus, Heart } from 'lucide-react';
 import { usePlayer } from '../services/player';
 import { Track } from '../lib/cache';
 
@@ -8,7 +8,7 @@ export function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
-  const { play, addToQueue, currentTrack, state } = usePlayer();
+  const { play, addToQueue, currentTrack, state, like, unlike, isLiked } = usePlayer();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +34,15 @@ export function SearchPage() {
   const handleAddToQueue = async (e: React.MouseEvent, track: Track) => {
     e.stopPropagation();
     await addToQueue(track);
+  };
+
+  const handleToggleLike = async (e: React.MouseEvent, track: Track) => {
+    e.stopPropagation();
+    if (isLiked(track.videoId)) {
+      await unlike(track.videoId);
+    } else {
+      await like(track);
+    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -88,6 +97,7 @@ export function SearchPage() {
             {results.map((track, index) => {
               const isPlaying =
                 currentTrack?.videoId === track.videoId && state === 'playing';
+              const liked = isLiked(track.videoId);
 
               return (
                   <motion.div
@@ -134,15 +144,31 @@ export function SearchPage() {
                           {formatDuration(track.duration)}
                         </p>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => handleAddToQueue(e, track)}
-                        className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors flex-shrink-0"
-                        title="Add to queue"
-                      >
-                        <Plus size={18} className="text-gray-400 hover:text-white md:w-5 md:h-5" />
-                      </motion.button>
+                      <div className="flex items-center gap-1">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => handleToggleLike(e, track)}
+                          className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors flex-shrink-0"
+                          title={liked ? "Remove from liked" : "Add to liked"}
+                        >
+                          <Heart 
+                            size={18} 
+                            className={`md:w-5 md:h-5 transition-colors ${
+                              liked ? 'fill-green-500 text-green-500' : 'text-gray-400 hover:text-white'
+                            }`}
+                          />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => handleAddToQueue(e, track)}
+                          className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors flex-shrink-0"
+                          title="Add to queue"
+                        >
+                          <Plus size={18} className="text-gray-400 hover:text-white md:w-5 md:h-5" />
+                        </motion.button>
+                      </div>
                     </div>
                   </motion.div>
               );

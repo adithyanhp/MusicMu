@@ -1,10 +1,21 @@
 import { create } from 'zustand';
 import { cache, Track } from '../lib/cache';
 
-// Use environment variable for API URL, fallback to /api for development proxy
-const API_BASE = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : '/api';
+// Determine API base URL dynamically
+const getApiBase = () => {
+  if (!import.meta.env.VITE_API_URL) {
+    return '/api'; // Use proxy in dev mode
+  }
+  
+  // Use current origin to construct API URL (works for localhost and network)
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const apiPort = '3001';
+  
+  return `${protocol}//${hostname}:${apiPort}/api`;
+};
+
+const API_BASE = getApiBase();
 
 export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -224,9 +235,14 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
           playerVars: {
             autoplay: 1,
             controls: 0,
+            enablejsapi: 1,
+            origin: window.location.origin,
+            playsinline: 1,
+            rel: 0,
           },
           events: {
             onReady: () => {
+              console.log('✅ YouTube player ready');
               set({ 
                 state: 'playing',
                 duration: player.getDuration(),

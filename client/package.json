@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "express": "^5.1.0",
     "framer-motion": "^10.18.0",
     "localforage": "^1.10.0",
     "lucide-react": "^0.303.0",
