@@ -7,6 +7,7 @@ import { LikedPage } from './pages/LikedPage';
 import { QueuePage } from './pages/QueuePage';
 import Sidebar from './components/Sidebar';
 import PlayerBar from './components/PlayerBar';
+import MobileNav from './components/MobileNav';
 
 function AppContent() {
   const init = usePlayer((state) => state.init);
@@ -18,11 +19,13 @@ function AppContent() {
   return (
     <div className="h-screen flex flex-col bg-black text-white overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Sidebar - Hidden on mobile, shown on desktop */}
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-black p-8">
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-black p-4 md:p-8 pb-32 md:pb-24">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/search" element={<SearchPage />} />
@@ -34,6 +37,9 @@ function AppContent() {
 
       {/* Player Bar */}
       <PlayerBar />
+      
+      {/* Mobile Navigation - Bottom */}
+      <MobileNav />
     </div>
   );
 }

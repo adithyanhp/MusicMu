@@ -3,6 +3,9 @@
 echo "🎵 Starting MusicMu..."
 echo ""
 
+# Get local IP address
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+
 # Check if tmux is available
 if ! command -v tmux &> /dev/null; then
     echo "⚠️  tmux not found. Starting servers in background..."
@@ -22,10 +25,18 @@ if ! command -v tmux &> /dev/null; then
     
     echo ""
     echo "✅ Both servers started!"
-    echo "📡 Backend: http://localhost:3001"
-    echo "🌐 Frontend: http://localhost:5173"
     echo ""
-    echo "📝 Logs:"
+    echo "� LOCAL ACCESS (This Device):"
+    echo "   �📡 Backend:  http://localhost:3001"
+    echo "   🌐 Frontend: http://localhost:5173"
+    echo ""
+    echo "🌍 NETWORK ACCESS (Other Devices):"
+    echo "   📡 Backend:  http://$LOCAL_IP:3001"
+    echo "   🌐 Frontend: http://$LOCAL_IP:5173"
+    echo ""
+    echo "� Open http://$LOCAL_IP:5173 on your phone/tablet!"
+    echo ""
+    echo "�📝 Logs:"
     echo "   Backend: tail -f server.log"
     echo "   Frontend: tail -f client.log"
     echo ""
@@ -46,8 +57,16 @@ else
     
     echo ""
     echo "✅ Servers started in tmux!"
-    echo "📡 Backend: http://localhost:3001"
-    echo "🌐 Frontend: http://localhost:5173"
+    echo ""
+    echo "� LOCAL ACCESS (This Device):"
+    echo "   �📡 Backend:  http://localhost:3001"
+    echo "   🌐 Frontend: http://localhost:5173"
+    echo ""
+    echo "🌍 NETWORK ACCESS (Other Devices):"
+    echo "   📡 Backend:  http://$LOCAL_IP:3001"
+    echo "   🌐 Frontend: http://$LOCAL_IP:5173"
+    echo ""
+    echo "📱 Open http://$LOCAL_IP:5173 on your phone/tablet!"
     echo ""
     echo "🔗 Attach to session: tmux attach -t musicmu"
     echo "🛑 To stop: tmux kill-session -t musicmu"

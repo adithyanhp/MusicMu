@@ -63,15 +63,15 @@ export default function PlayerBar() {
   }
 
   return (
-    <div className="h-24 bg-black border-t border-gray-800 px-4 flex items-center justify-between">
-      {/* Left: Track Info */}
-      <div className="flex items-center gap-4 w-80">
+    <div className="h-20 md:h-24 bg-black border-t border-gray-800 px-2 md:px-4 flex items-center justify-between fixed bottom-0 left-0 right-0 z-50">
+      {/* Left: Track Info - Compact on mobile */}
+      <div className="flex items-center gap-2 md:gap-4 w-24 md:w-80">
         <img
           src={currentTrack.thumbnail}
           alt={currentTrack.title}
-          className="w-14 h-14 rounded"
+          className="w-12 h-12 md:w-14 md:h-14 rounded"
         />
-        <div className="flex-1 min-w-0">
+        <div className="hidden md:block flex-1 min-w-0">
           <h4 className="text-white text-sm font-semibold truncate">
             {currentTrack.title}
           </h4>
@@ -81,7 +81,7 @@ export default function PlayerBar() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleToggleLike}
-          className="text-gray-400 hover:text-white"
+          className="hidden md:block text-gray-400 hover:text-white"
         >
           <Heart
             size={20}
@@ -91,13 +91,14 @@ export default function PlayerBar() {
       </div>
 
       {/* Center: Player Controls */}
-      <div className="flex-1 max-w-2xl">
+      <div className="flex-1 max-w-2xl px-2 md:px-4">
         {/* Control Buttons */}
-        <div className="flex items-center justify-center gap-4 mb-2">
+        <div className="flex items-center justify-center gap-2 md:gap-4 mb-1 md:mb-2">
+          {/* Shuffle - Hidden on mobile */}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="text-gray-400 hover:text-white"
+            className="hidden md:block text-gray-400 hover:text-white"
           >
             <Shuffle size={18} />
           </motion.button>
@@ -116,14 +117,14 @@ export default function PlayerBar() {
             whileTap={{ scale: 0.95 }}
             onClick={togglePlay}
             disabled={state === 'loading'}
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white flex items-center justify-center text-black hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state === 'loading' ? (
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={20} className="animate-spin" />
             ) : state === 'playing' ? (
-              <Pause size={18} fill="currentColor" />
+              <Pause size={20} fill="currentColor" />
             ) : (
-              <Play size={18} fill="currentColor" className="ml-0.5" />
+              <Play size={20} fill="currentColor" className="ml-0.5" />
             )}
           </motion.button>
 
@@ -136,18 +137,19 @@ export default function PlayerBar() {
             <SkipForward size={20} fill="currentColor" />
           </motion.button>
 
+          {/* Repeat - Hidden on mobile */}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="text-gray-400 hover:text-white"
+            className="hidden md:block text-gray-400 hover:text-white"
           >
             <Repeat size={18} />
           </motion.button>
         </div>
 
         {/* Progress Bar */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 w-10 text-right">
+        <div className="flex items-center gap-1 md:gap-2">
+          <span className="text-xs text-gray-400 w-8 md:w-10 text-right">
             {formatTime(progress)}
           </span>
           <div
@@ -162,14 +164,14 @@ export default function PlayerBar() {
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-lg" />
             </motion.div>
           </div>
-          <span className="text-xs text-gray-400 w-10">
+          <span className="text-xs text-gray-400 w-8 md:w-10">
             {formatTime(duration)}
           </span>
         </div>
       </div>
 
-      {/* Right: Volume & Queue */}
-      <div className="flex items-center gap-4 w-80 justify-end">
+      {/* Right: Volume & Queue - Hidden on mobile, volume simplified */}
+      <div className="hidden md:flex items-center gap-4 w-80 justify-end">
         {/* Queue Button */}
         <motion.button
           whileHover={{ scale: 1.1 }}
@@ -208,6 +210,19 @@ export default function PlayerBar() {
           </div>
         </div>
       </div>
+      
+      {/* Mobile: Like button on right */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleToggleLike}
+        className="md:hidden text-gray-400 hover:text-white pr-2"
+      >
+        <Heart
+          size={24}
+          className={liked ? 'fill-green-500 text-green-500' : ''}
+        />
+      </motion.button>
     </div>
   );
 }
