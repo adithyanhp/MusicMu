@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { search } from '../lib/youtube';
+import { search } from '../lib/youtube.js';
 
 export default async function handler(
   req: VercelRequest,

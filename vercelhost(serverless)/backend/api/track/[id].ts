@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getMetadata } from '../../lib/youtube';
+import { getMetadata } from '../../lib/youtube.js';
 
 export default async function handler(
   req: VercelRequest,
