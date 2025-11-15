@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { cache, Track } from '../lib/cache';
+import { mediaSessionManager } from '../lib/mediaSession';
 
 // Determine API base URL dynamically
 const getApiBase = () => {
@@ -63,7 +64,7 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
   mode: 'iframe',
   currentTrack: null,
   queue: [],
-  volume: 0.7,
+  volume: 1.0, // Increased from 0.7 to 1.0 (100%)
   progress: 0,
   duration: 0,
   error: null,
@@ -81,6 +82,19 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
 
     // Initialize YouTube IFrame API
     await get().initYouTubePlayer();
+    
+    // Register media session handlers for background playback
+    mediaSessionManager.setHandlers({
+      play: () => get().togglePlay(),
+      pause: () => get().togglePlay(),
+      nextTrack: () => get().next(),
+      previousTrack: () => get().prev(),
+      seekTo: (details) => {
+        if (details.seekTime !== undefined) {
+          get().seek(details.seekTime);
+        }
+      },
+    });
   },
 
   initYouTubePlayer: async () => {
@@ -207,6 +221,11 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
 
     console.log('🎵 Playing track:', track.title, 'by', track.artist);
 
+    // Update media session metadata for background playback
+    mediaSessionManager.updateMetadata(track);
+    mediaSessionManager.updatePlaybackState('playing');
+    await mediaSessionManager.acquireWakeLock();
+
     try {
       // Fetch stream info (always returns iframe mode)
       const response = await fetch(`${API_BASE}/track/${track.videoId}/stream`);
@@ -246,8 +265,11 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
 
     if (state === 'playing') {
       ytPlayer.pauseVideo();
+      mediaSessionManager.updatePlaybackState('paused');
     } else if (state === 'paused') {
       ytPlayer.playVideo();
+      mediaSessionManager.updatePlaybackState('playing');
+      mediaSessionManager.acquireWakeLock();
     } else if (state === 'idle' && currentTrack) {
       // Reload current track
       get().play(currentTrack);
@@ -272,6 +294,10 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
         progress: 0, 
         duration: 0
       });
+      
+      // Release wake lock and update media session
+      mediaSessionManager.updatePlaybackState('none');
+      mediaSessionManager.releaseWakeLock();
       
       console.log('📭 Queue empty, stopped playback');
     }
