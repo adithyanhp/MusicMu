@@ -20,6 +20,7 @@ export interface GuestCache {
   liked: Track[];
   queue: Track[];
   lastPlayed: Track | null;
+  history: Track[]; // Track history for previous button
   version: number;
 }
 
@@ -38,6 +39,7 @@ const defaultCache: GuestCache = {
   liked: [],
   queue: [],
   lastPlayed: null,
+  history: [],
   version: CACHE_VERSION,
 };
 
@@ -187,6 +189,39 @@ export class CacheManager {
   // Last played
   async setLastPlayed(track: Track): Promise<void> {
     this.cache!.lastPlayed = track;
+    await this.save();
+  }
+
+  // History management (for previous button)
+  async addToHistory(track: Track): Promise<void> {
+    // Add track to history, but avoid duplicates in a row
+    const lastInHistory = this.cache!.history[this.cache!.history.length - 1];
+    if (!lastInHistory || lastInHistory.videoId !== track.videoId) {
+      this.cache!.history.push(track);
+      
+      // Keep history limited to last 100 tracks to avoid memory issues
+      if (this.cache!.history.length > 100) {
+        this.cache!.history.shift();
+      }
+      
+      await this.save();
+    }
+  }
+
+  async getHistory(): Promise<Track[]> {
+    return [...this.cache!.history];
+  }
+
+  async popFromHistory(): Promise<Track | null> {
+    const track = this.cache!.history.pop();
+    if (track) {
+      await this.save();
+    }
+    return track || null;
+  }
+
+  async clearHistory(): Promise<void> {
+    this.cache!.history = [];
     await this.save();
   }
 

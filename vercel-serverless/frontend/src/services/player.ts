@@ -42,8 +42,9 @@ interface PlayerStore {
   ytPlayerReady: boolean;
   
   // Actions
-  search: (query: string) => Promise<Track[]>;
+  search: (query: string, limit?: number) => Promise<Track[]>;
   play: (track: Track) => Promise<void>;
+  _playInternal: (track: Track, addToHistory?: boolean) => Promise<void>;
   togglePlay: () => void;
   next: () => Promise<void>;
   prev: () => Promise<void>;
@@ -276,9 +277,9 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     });
   },
 
-  search: async (query: string) => {
+  search: async (query: string, limit: number = 10) => {
     try {
-      const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}`);
       const data = await response.json();
       return data.results || [];
     } catch (error) {
@@ -288,7 +289,11 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
   },
 
   play: async (track: Track) => {
-    const { ytPlayer, ytPlayerReady } = get();
+    await get()._playInternal(track, true);
+  },
+
+  _playInternal: async (track: Track, addToHistory: boolean = true) => {
+    const { ytPlayer, ytPlayerReady, currentTrack: previousTrack } = get();
 
     if (!ytPlayer || !ytPlayerReady) {
       console.error('YouTube player not ready');
@@ -323,25 +328,22 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     await mediaSessionManager.acquireWakeLock();
 
     try {
-      // Fetch stream info (always returns iframe mode)
-      const response = await fetch(`${API_BASE}/track/${track.videoId}/stream`);
-      
-      if (!response.ok) {
-        throw new Error(`Stream fetch failed: ${response.status}`);
-      }
-      
-      const stream = await response.json();
-      
-      console.log('� Loading video:', track.videoId);
+      console.log('📺 Loading video:', track.videoId);
 
-      // Load and play video
+      // Load and play video directly (no stream fetch needed for iframe)
       ytPlayer.loadVideoById({
         videoId: track.videoId,
         startSeconds: 0,
       });
 
-      // Update cache
+      // Update cache and add to history
       await cache.setLastPlayed(track);
+      
+      // Add previous track to history (only if addToHistory is true)
+      if (addToHistory && previousTrack && previousTrack.videoId !== track.videoId) {
+        await cache.addToHistory(previousTrack);
+        console.log('📜 Added to history:', previousTrack.title);
+      }
 
     } catch (error) {
       console.error('Play error:', error);
@@ -402,15 +404,35 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
   prev: async () => {
     const { progress, currentTrack } = get();
     
-    // If more than 3 seconds in, restart current track
+    // If more than 3 seconds in, restart current track (first click)
     if (progress > 3) {
       get().seek(0);
       return;
     }
 
-    // Otherwise just restart current track
-    if (currentTrack) {
-      get().seek(0);
+    // Second click onwards - play previous track from history
+    const previousTrack = await cache.popFromHistory();
+    if (previousTrack) {
+      console.log('⏮️ Playing previous track from history:', previousTrack.title);
+      
+      // Add current track back to the beginning of queue
+      if (currentTrack && currentTrack.videoId !== previousTrack.videoId) {
+        const { queue } = get();
+        const newQueue = [currentTrack, ...queue];
+        set({ queue: newQueue });
+        await cache.clearQueue();
+        for (const track of newQueue) {
+          await cache.addToQueue(track);
+        }
+      }
+      
+      // Play the previous track without adding to history
+      await get()._playInternal(previousTrack, false);
+    } else {
+      // No history available, just restart current track
+      if (currentTrack) {
+        get().seek(0);
+      }
     }
   },
 

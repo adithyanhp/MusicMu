@@ -17,17 +17,20 @@ export interface VideoResult {
   thumbnail: string;
 }
 
-export async function search(query: string): Promise<VideoResult[]> {
+export async function search(query: string, limit: number = 10): Promise<VideoResult[]> {
   const yt = await getYouTube();
   const results = await yt.search(query, { type: 'video' });
   
-  return results.videos.slice(0, 10).map((video: any) => ({
-    videoId: video.id,
-    title: video.title.text || '',
-    artist: video.author?.name || 'Unknown',
-    duration: video.duration?.seconds || 0,
-    thumbnail: video.best_thumbnail?.url || ''
-  }));
+  return results.videos
+    .filter((video: any) => video && video.id && video.title) // Filter out invalid videos
+    .slice(0, limit)
+    .map((video: any) => ({
+      videoId: video.id,
+      title: video.title?.text || video.title || 'Unknown Title',
+      artist: video.author?.name || 'Unknown',
+      duration: video.duration?.seconds || 0,
+      thumbnail: video.best_thumbnail?.url || ''
+    }));
 }
 
 export async function getMetadata(videoId: string) {

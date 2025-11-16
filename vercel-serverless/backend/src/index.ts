@@ -52,7 +52,7 @@ app.get('/api/health', async (request, reply) => {
 
 // Search endpoint
 app.get('/api/search', async (request, reply) => {
-  const { q } = request.query as { q?: string };
+  const { q, limit } = request.query as { q?: string; limit?: string };
   
   if (!q) {
     reply.code(400);
@@ -60,7 +60,8 @@ app.get('/api/search', async (request, reply) => {
   }
 
   try {
-    const results = await search(q);
+    const resultLimit = limit ? parseInt(limit, 10) : 10;
+    const results = await search(q, resultLimit);
     return { results };
   } catch (error: any) {
     request.log.error(error);

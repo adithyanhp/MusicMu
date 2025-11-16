@@ -8,6 +8,8 @@ export function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentLimit, setCurrentLimit] = useState(10);
   const { play, addToQueue, currentTrack, state, like, unlike, isLiked } = usePlayer();
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -15,8 +17,9 @@ export function SearchPage() {
     if (!query.trim()) return;
 
     setLoading(true);
+    setCurrentLimit(10); // Reset to initial limit
     try {
-      const searchResults = await usePlayer.getState().search(query);
+      const searchResults = await usePlayer.getState().search(query, 10);
       setResults(searchResults);
     } catch (error) {
       console.error('Search failed:', error);
@@ -26,9 +29,34 @@ export function SearchPage() {
     }
   };
 
-  const handlePlay = async (track: Track) => {
-    // Just play the track, it will be auto-removed from queue if it's there
+  const handleLoadMore = async () => {
+    if (!query.trim()) return;
+    
+    // Maximum limit of 50 results
+    if (currentLimit >= 50) return;
+
+    setLoadingMore(true);
+    try {
+      const newLimit = Math.min(currentLimit + 10, 50); // Cap at 50
+      const searchResults = await usePlayer.getState().search(query, newLimit);
+      setResults(searchResults);
+      setCurrentLimit(newLimit);
+    } catch (error) {
+      console.error('Load more failed:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handlePlay = async (track: Track, index: number) => {
+    // Play the selected track
     await play(track);
+    
+    // Add all songs after this one to the queue
+    const songsAfter = results.slice(index + 1);
+    for (const song of songsAfter) {
+      await addToQueue(song);
+    }
   };
 
   const handleAddToQueue = async (e: React.MouseEvent, track: Track) => {
@@ -107,7 +135,7 @@ export function SearchPage() {
                     transition={{ delay: index * 0.05 }}
                     className="bg-white/5 hover:bg-white/10 active:bg-white/15 rounded-lg p-3 md:p-4 cursor-pointer group transition-all"
                   >
-                    <div className="relative mb-3 md:mb-4" onClick={() => handlePlay(track)}>
+                    <div className="relative mb-3 md:mb-4" onClick={() => handlePlay(track, index)}>
                       <img
                         src={track.thumbnail}
                         alt={track.title}
@@ -174,6 +202,31 @@ export function SearchPage() {
               );
             })}
           </div>
+          
+          {/* Load More Button */}
+          {currentLimit < 50 && (
+            <div className="flex justify-center mt-6">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="bg-white/10 hover:bg-white/20 active:bg-white/30 disabled:bg-white/5 disabled:cursor-not-allowed px-6 py-3 rounded-full font-semibold transition-all flex items-center gap-2"
+              >
+                {loadingMore ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={20} />
+                    <span>Load More ({currentLimit}/50)</span>
+                  </>
+                )}
+              </motion.button>
+            </div>
+          )}
         </div>
       )}
 
