@@ -11,8 +11,11 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 4173,
       strictPort: false,
+      watch: {
+        ignored: ['**/node_modules/**', '**/.git/**'],
+      },
       hmr: {
-        clientPort: 4173,
+        overlay: false,
       },
       allowedHosts: [
         'musicmu.local',

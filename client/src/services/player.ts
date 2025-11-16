@@ -47,7 +47,7 @@ interface PlayerStore {
   // Actions
   search: (query: string, limit?: number) => Promise<Track[]>;
   play: (track: Track) => Promise<void>;
-  _playInternal: (track: Track) => Promise<void>;
+  _playInternal: (track: Track, skipReverseQueue?: boolean) => Promise<void>;
   togglePlay: () => void;
   next: () => Promise<void>;
   prev: () => Promise<void>;
@@ -295,10 +295,11 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
   },
 
   play: async (track: Track) => {
-    await get()._playInternal(track);
+    console.log('🚀 NEW CODE LOADED - play() called for:', track.title);
+    await get()._playInternal(track, false);
   },
 
-  _playInternal: async (track: Track) => {
+  _playInternal: async (track: Track, skipReverseQueue: boolean = false) => {
     const { ytPlayer, ytPlayerReady, currentTrack: previousTrack } = get();
 
     if (!ytPlayer || !ytPlayerReady) {
@@ -308,7 +309,8 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     }
 
     // 🔄 REVERSE QUEUE LOGIC: Push previous track to reverse queue (history stack)
-    if (previousTrack && previousTrack.videoId !== track.videoId) {
+    // BUT skip if we're navigating backwards (skipReverseQueue = true)
+    if (!skipReverseQueue && previousTrack && previousTrack.videoId !== track.videoId) {
       await cache.pushToReverseQueue(previousTrack);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('⬅️  PUSHED TO REVERSE QUEUE:', previousTrack.title);
@@ -477,9 +479,8 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
       console.log('➡️  Pushed current track to front of queue:', currentTrack.title);
     }
     
-    // Play the previous track WITHOUT adding to reverse queue
-    // (it was already popped from reverse queue)
-    await get()._playInternal(previousTrack);
+    // Play the previous track WITHOUT adding to reverse queue (skipReverseQueue = true)
+    await get()._playInternal(previousTrack, true);
   },
 
   seek: (seconds: number) => {
